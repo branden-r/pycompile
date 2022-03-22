@@ -21,22 +21,51 @@ def parse_args() -> str:
     return stem
 
 
-def to_exe(stem: str) -> None:
+def rmtree_if_dir(my_dir: str) -> None:
     """
-    Creates an .exe of the .py file with the given stem.
-    The given .py file must be in the same directory as this file.
-    The .exe appears in the same directory as this file.
+    Deletes the tree at the given path if it exists.
+    """
+    path: Path = Path(my_dir)
+    rmtree(path) if path.is_dir() else None
+
+
+def unlink_if_file(file: str) -> None:
+    """
+    Deletes the file at the given path if it exists.
+    """
+    path: Path = Path(file)
+    path.unlink() if path.is_file() else None
+
+
+def clean(name: Path) -> None:
+    """
+    Deletes all files created by pyinstaller if they exist, except for the .exe file.
+    """
+    rmtree_if_dir("build")
+    rmtree_if_dir("dist")
+    rmtree_if_dir("__pycache__")
+    unlink_if_file(f"{name.stem}.py.spec")
+
+
+def to_exe(my_in: Path | str, out: Path | str) -> None:
+    """
+    Creates an .exe of the given .py file.
+    :param my_in:
+    :param out:
+    :return:
+    """
+    """
+    Creates an .exe of the given .py file.
+    :param:
     Deletes build, dist, and pycache folders before and after compilation.
     """
-    rmtree("build") if Path("build").is_dir() else None
-    rmtree("dist") if Path("dist").is_dir() else None
-    rmtree("__pycache__") if Path("__pycache__").is_dir() else None
-    system(f"pyinstaller --onefile {stem}.py")
-    Path(f"dist/{stem}.exe").replace(f"{stem}.exe")
-    rmtree("build")
-    Path("dist").rmdir()
-    rmtree("__pycache__")
-    Path(f"{stem}.spec").unlink()
+    if isinstance(path, str):
+        path = Path(path)
+    clean(path)
+    system(f"pyinstaller --onefile {path}")
+    path: Path = Path(f"dist/{path}.exe")
+    path.replace(f"{path}.exe") if path.is_file() else None
+    clean(path)
 
 
 def main() -> None:
@@ -44,11 +73,11 @@ def main() -> None:
     Calls to_exe for the given stem (given as argument).
     """
     try:
-        name: str = parse_args() + ".py"
-        if Path(name).is_file():
-            to_exe(name)
+        path: Path = Path(parse_args() + ".py")
+        if path.is_file():
+            to_exe(path)
         else:
-            print(f"fatal: file {name} not found")
+            print(f"fatal: file {path} not found")
     except SystemExit:  # don't let the arg parser exit in case we need to pause
         pass
     if PAUSE_SHORT in argv or PAUSE_LONG in argv:
